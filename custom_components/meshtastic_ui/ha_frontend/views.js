@@ -34,6 +34,14 @@ function formatDateLabel(iso) {
   }
 }
 
+function formatMessageText(text) {
+  // Preserve intentional single line breaks (now rendered via white-space: pre-wrap),
+  // but don't let leading/trailing/repeated blank lines blow up the bubble's height —
+  // collapse runs of 3+ newlines down to a single blank line and trim the ends.
+  if (!text) return "";
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function isSameDay(iso1, iso2) {
   if (!iso1 || !iso2) return false;
   const a = new Date(iso1), b = new Date(iso2);
@@ -674,6 +682,9 @@ export class MeshMessagesTab extends LitElement {
           font-size: 14px; line-height: 1.4; word-break: break-word;
           min-width: 0;
         }
+        .chat-bubble .message-text {
+          white-space: pre-wrap;
+        }
         .chat-bubble.incoming {
           background: var(--secondary-background-color);
           border-bottom-left-radius: 4px;
@@ -690,16 +701,20 @@ export class MeshMessagesTab extends LitElement {
           display: flex; gap: 8px; padding-top: 12px;
           border-top: 1px solid var(--divider-color);
           margin-top: auto; flex-shrink: 0;
+          align-items: flex-end;
         }
-        .chat-input-row input {
+        .chat-input-row textarea {
           flex: 1; padding: 10px 14px;
           border: 1px solid var(--divider-color);
           border-radius: 20px;
           background: var(--card-background-color);
           color: var(--primary-text-color);
-          font-size: 14px; outline: none;
+          font-family: inherit;
+          font-size: 14px; line-height: 1.4; outline: none;
+          resize: none; overflow-y: auto;
+          max-height: 120px;
         }
-        .chat-input-row input:focus { border-color: var(--primary-color); }
+        .chat-input-row textarea:focus { border-color: var(--primary-color); }
         .send-btn {
           padding: 8px 20px;
           background: var(--primary-color);
@@ -1022,7 +1037,7 @@ export class MeshMessagesTab extends LitElement {
                           ${(quotedMsg.text || "").slice(0, 60)}${(quotedMsg.text || "").length > 60 ? "\u2026" : ""}
                         </div>
                       ` : ""}
-                      <div>${msg.text}</div>
+                      <div class="message-text">${formatMessageText(msg.text)}</div>
                       <div class="time">
                         ${formatTime(msg.timestamp)}${msg.hops_away != null ? html`<span class="hops-badge" title="${msg.hops_away === 0 ? "Direct" : `${msg.hops_away} hop${msg.hops_away !== 1 ? "s" : ""}` }"><svg viewBox="0 0 255.55 196.22" fill="var(--secondary-text-color)"><path d="M229.68,195.41c1.62-1.37,1.32-4.91.91-6.72-.6-2.72-1.79-5.01-3.06-7.56-3.33-6.66-5.8-13.44-6.67-20.94,4.99.71,9.32,11.55,11.07,15.47,3.31,7.4,8.68,17.78,17.4,19.66,2.05.44,4.52.14,5.66-1.67,2.13-3.41-2.27-10.5-4.47-13.57-5.81-8.09-9.78-16.67-13.02-26.04-1.25-3.6-2.07-7.37-5.06-10.04-.75-.67-2.16-1.4-3.16-1.47l-3.81-.23c-7.54-.47-15.84-2.22-18.71-10.53-2.61-7.56.88-13.47-.64-22.58-.28-1.68-.33-3.33-.15-5.05,9.55-4.94,11.19-14.58,7.06-23.61-.84-1.84-1.71-3.55-3.01-5.08-4.1-4.83-10.38,6.56-14.15,8.72-20.83-24.43-57.51-33.07-87.56-32.87-5.23.04-9.96.09-15.13.7-7.99.95-17.35,1.07-23.63-4.74-1.23-1.14-2.59-2.98-2.15-4.55.77-2.75,17.44-1.94,20.6-2.15,13.7-.92,26.37-5.31,37.99-12.74,3.9-2.5,7.72-4.73,10-8.81,3.05-5.46-10.01-4.71-12.87-4.96-2.49-.22-4.83-.14-7.23-.52,3.4-3.3,8.57-7.05,9.09-11.29.44-3.55-11.02-1.85-13.51-1.55-5.94.71-11.63.94-17.58,2.08-9.61,1.84-18.26,5.95-26.34,11.32l-15.29,10.15c-3.16,2.1-6.44,2.64-10.28,2.59-19.77-.26-28.71,12.78-38.77,26.95-3.76,5.3,2.44,13.5,8.25,16.48,13.33,6.85,28.74-.82,35.52,18.08-1.49,1.16-2.85,1.32-4.35,1.67l-19.3,4.53C17.98,95.78-.5,103.25.01,109.91c.19,2.45,2.67,3.74,4.96,3.98,4.26.44,8.39-.98,12.24-3.06,6.37-3.44,13.12-5.53,20.55-5.56-6.57,3.22-12.79,6.85-18.27,11.81-3.36,3.04-7.47,9.88-4.16,13.18,1.09,1.09,2.71,1.52,4.51,1.3,8.26-1,13.77-8.84,23.34-12.54,7.83-3.02,15.89-4.51,24.23-5.42,3.66-.4,7.71-.41,10.26-.67,5.28-.53,10.64-.33,15.96,0l4.77.29,4.11.44c12.5,1.35,24.74,4.23,36.47,9.39l12.36,5.43c7.46,15.79,19.77,28.05,37.33,30.16l7.16.86c2.98.36,6.24-.57,9.19.77,3.24,1.47,5.02,10.98,5.95,14.55,1.95,7.52,6.51,19.39,15.05,21.25,1.44.31,2.77.08,3.65-.68Z"/></svg>${msg.hops_away > 0 ? `×${msg.hops_away}` : ""}</span>` : ""}${delivery ? html`<span class="delivery-icon ${delivery.status}" title="${delivery.status === "delivered" ? "Delivered" : delivery.status === "failed" ? `Failed${delivery.error ? `: ${delivery.error}` : ""}` : delivery.status === "timeout" ? "No acknowledgement received" : "Sending\u2026"}">${delivery.status === "delivered" ? "\u2713\u2713" : delivery.status === "failed" ? "\u2717" : delivery.status === "timeout" ? "?" : "\u231B"}</span>` : ""}${msg.channel != null ? html`<span class="encryption-badge" title="Channel ${msg.channel}">\uD83D\uDD12</span>` : ""}
                       </div>
@@ -1056,14 +1071,19 @@ export class MeshMessagesTab extends LitElement {
           ` : ""}
 
           <div class="chat-input-row">
-            <input
-              type="text"
+            <textarea
+              rows="1"
               placeholder="${this._replyTo ? "Reply\u2026" : "Type a message\u2026"}"
               .value=${this._messageInput}
-              @input=${(e) => { this._messageInput = e.target.value; this.requestUpdate(); }}
+              @input=${(e) => {
+                this._messageInput = e.target.value;
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
+                this.requestUpdate();
+              }}
               @keydown=${this._onKeydown}
               maxlength="228"
-            />
+            ></textarea>
             <button class="send-btn" @click=${this._sendMessage} ?disabled=${!this._messageInput.trim()}>Send</button>
           </div>
           <div class="chat-input-meta">
@@ -1137,6 +1157,10 @@ export class MeshMessagesTab extends LitElement {
     this._messageInput = "";
     this._replyTo = null;
     this.requestUpdate();
+    this.updateComplete.then(() => {
+      const textarea = this.shadowRoot.querySelector(".chat-input-row textarea");
+      if (textarea) textarea.style.height = "auto";
+    });
   }
 
   _startReply(msg) {
@@ -1145,7 +1169,7 @@ export class MeshMessagesTab extends LitElement {
     this._clearActionsOpen();
     // Focus the input
     this.updateComplete.then(() => {
-      const input = this.shadowRoot.querySelector(".chat-input-row input");
+      const input = this.shadowRoot.querySelector(".chat-input-row textarea");
       if (input) input.focus();
     });
   }
